@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -11,7 +10,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                echo 'Project source code is checked out from GitHub.'
+                echo 'Source code retrieved from GitHub.'
                 sh 'ls -la'
             }
         }
@@ -28,6 +27,25 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '.venv/bin/python -m pytest -v'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t healthapp:${BUILD_NUMBER} .'
+            }
+        }
+
+        stage('Deploy Application') {
+            steps {
+                sh '''
+                    docker rm -f healthapp || true
+                    docker run -d \
+                        --name healthapp \
+                        -p 5000:5000 \
+                        --restart unless-stopped \
+                        healthapp:${BUILD_NUMBER}
+                '''
             }
         }
     }
